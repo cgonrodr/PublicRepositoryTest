@@ -32,6 +32,7 @@ class FormatterXL:
         except ValueError:
             print(ValueError)
             return ValueError
+        
 
 
 if __name__ == "__main__":
