@@ -72,6 +72,7 @@ class InformesPresupuestalesFacade:
 
             # Build Informe Interno
             informe_interno_manager = InformeInternoManager()
+            informe_interno_manager.build_informe(cr_llaves_df, cc_llaves_df, apertura_llaves_df)
 
             
         except ValueError:

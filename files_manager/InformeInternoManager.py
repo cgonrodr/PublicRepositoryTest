@@ -19,8 +19,7 @@ class InformeInternoManager:
     def build_informe(self, cr_llaves_df, cc_llaves_df, apertura_llaves_df):
         try:
             print("Build Informe")
-
-            #cr_llaves_df
+            # For Apertura Dataframe define the '' sum by each Llaves Group 
 
 
             # return Successful indicating good execution
