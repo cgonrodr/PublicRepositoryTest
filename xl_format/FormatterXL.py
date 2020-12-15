@@ -4,7 +4,9 @@
  * CreateAt: 16/04/20
  * Formatter XL
  """
-import openpyxl
+
+
+# import openpyxl
 
 
 class FormatterXL:
@@ -22,17 +24,16 @@ class FormatterXL:
 
             # to open the workbook
             # workbook object is created
-            wb_obj = openpyxl.load_workbook(file_path + informe_temp_filename)
-            print(wb_obj)
-            sheet_obj = wb_obj.active
-            wb_obj.save(file_path + informe_filename)
+            # wb_obj = openpyxl.load_workbook(file_path + informe_temp_filename)
+            # print(wb_obj)
+            # sheet_obj = wb_obj.active
+            # wb_obj.save(file_path + informe_filename)
 
             # return True indicating good execution
             return "Successful"
         except ValueError:
             print(ValueError)
             return ValueError
-        
 
 
 if __name__ == "__main__":

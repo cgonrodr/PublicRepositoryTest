@@ -7,6 +7,8 @@ to use.
 from files_manager.AperturaManager import AperturaManager
 from files_manager.CenCompromisosManager import CenCompromisosManager
 from files_manager.ConsolidadoResolucionesManager import ConsolidadoResolucionesManager
+from files_manager.InformeManager import InformeInternoManager
+import datetime
 
 
 class InformesPresupuestalesFacade:
@@ -15,38 +17,68 @@ class InformesPresupuestalesFacade:
     Delegate client requests to appropriate subsystem objects.
     """
 
-    def __init__(self, root_source_folder, current_year):
+    def __init__(self, root_source_folder):
         self.root_source_folder = root_source_folder
-        self.current_year = current_year
+        self.current_year = datetime.datetime.now().year
 
     def standardize_root_files(self, apertura_filename, cr_filename, cc_filename):
-        # Init standardize results list
-        standardize_results = []
+        print('Start Standardize Files')
 
-        # Standardize Apertura File
-        sheet_name_apertura = 'APERTURA FUNC-GASTOS 2020'
-        apertura_manager = AperturaManager(self.root_source_folder, self.current_year)
-        standardize_results.append(apertura_manager.standardize_file(apertura_filename, sheet_name_apertura))
+        try:
+            # Init standardize results list
+            standardize_results = []
+            
+            # Standardize Consolidado de Resoluciones File
+            cr_manager = ConsolidadoResolucionesManager(root_source_folder, self.current_year)
+            standardize_results.append(cr_manager.standardize_file(cr_filename))
 
-        # Standardize Consolidado de Resoluciones File
-        sheet_name_cr = 'Administrativa'
-        cr_manager = ConsolidadoResolucionesManager(root_source_folder)
-        standardize_results.append(cr_manager.standardize_file(cr_filename, sheet_name_cr))
+            # Standardize Cen de Compromisos File
+            cc_manager = CenCompromisosManager(root_source_folder, self.current_year)
+            standardize_results.append(cc_manager.standardize_file(cc_filename))
 
-        # Standardize Cen de Compromisos File
-        sheet_name_cc = 'CEN COMPR CONSNAL A 30SEPT20_C '
-        cc_manager = CenCompromisosManager(root_source_folder, self.current_year)
-        standardize_results.append(cc_manager.standardize_file(cc_filename, sheet_name_cc))
+            # Standardize Apertura File
+            apertura_manager = AperturaManager(self.root_source_folder, self.current_year)
+            standardize_results.append(apertura_manager.standardize_file(apertura_filename))
 
-        # Return standardize results list
-        return standardize_results
+            print(standardize_results)
 
-    def build_informe_general(self):
-        pass
-        # self._subsystem_1.operation1()
-        # self._subsystem_1.operation2()
-        # self._subsystem_2.operation1()
-        # self._subsystem_2.operation2()
+            # Check if all results are 'Successful', return Successful if yes
+            if len(set(standardize_results)) == 1 and str(set(standardize_results)) == "{'Successful'}":
+                return 'Successful'
+            
+            # Return the complete errors set
+            return str(set(standardize_results))
+        
+        except Exception as e:
+            print(e)
+            return e
+
+
+    def build_informe_report(self):
+        print('Build Informes Report')
+
+        try:
+            # Standardize Consolidado de Resoluciones File
+            cr_manager = ConsolidadoResolucionesManager(root_source_folder, self.current_year)
+            cr_llaves_df = cr_manager.build_llaves()
+
+            # Standardize Cen de Compromisos File
+            cc_manager = CenCompromisosManager(root_source_folder, self.current_year)
+            cc_llaves_df = cc_manager.build_llaves()
+
+            # Standardize Apertura File
+            apertura_manager = AperturaManager(self.root_source_folder, self.current_year)
+            apertura_llaves_df = apertura_manager.build_llaves()
+
+            # Build Informe Interno
+            informe_interno_manager = InformeInternoManager()
+
+            
+        except ValueError:
+            print(ValueError)
+            return ValueError
+
+
 
     def build_informe_rublos(self):
         pass
@@ -57,14 +89,17 @@ class InformesPresupuestalesFacade:
 
 
 if __name__ == "__main__":
-    root_source_folder = 'C:\\Users\\cgonrodr\\Documents\\PruebaPythonExcel\\'
-    current_year = 2018
-    informes_presupuestales_facade = InformesPresupuestalesFacade(root_source_folder, current_year)
+    root_source_folder = "C:\\Users\\cgonrodr\\OneDrive - everis\\Documentos\\PruebaPythonExcel\\"
+    informes_presupuestales_facade = InformesPresupuestalesFacade(root_source_folder)
     apertura_filename = "APERTURA FUNCIONAMIENTO-INVERSIÓN 2020.xlsx"
     sheet_name_apertura = 'APERTURA FUNC-GASTOS 2020'
     cr_filename = "Consolidado Resoluciones.xlsx"
     sheet_name_cr = 'Administrativa'
     cc_filename = "CEN COMPROMISOS CONS NAL A 30 SEPT 2020_CIERRE_01102020 - Homologado.xlsb"
     sheet_name_cc = 'CEN COMPR CONSNAL A 30SEPT20_C '
-    standardize_results = informes_presupuestales_facade.standardize_root_files(apertura_filename, cr_filename, cc_filename)
-    print(standardize_results)
+    #standardize_results = informes_presupuestales_facade.standardize_root_files(apertura_filename, cr_filename,
+    #                                                                            cc_filename)
+    #print(standardize_results)
+
+    informes_presupuestales_facade.build_informe_report()                                                                            
+    
