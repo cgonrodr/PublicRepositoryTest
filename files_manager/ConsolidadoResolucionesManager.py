@@ -10,13 +10,13 @@ from utils.Constants import FILENAME_REGIONES_PROYECTOS_CONCEPTOS, FOLDERNAME_TE
     FILENAME_TEMP_CR, FILENAME_INVALID_REG_DEP, FILENAME_INVALID_PROYECTOS, \
     FILENAME_INVALID_CONCEPTOS, FILENAME_INVALID_LLAVES, FOLDERNAME_FAIL_FILES
 from files_manager.RegionalesProyectosCfManager import RegionalesProyectosCfManager
+from utils.Utils import Utils
 
 
 class ConsolidadoResolucionesManager:
 
-    def __init__(self, root_source_folder, current_year):
+    def __init__(self, root_source_folder):
         self.root_source_folder = root_source_folder
-        self.current_year = current_year
 
     def standardize_file(self, cr_filename):
         """Standasdize File Consolidado Resoluciones
@@ -27,8 +27,6 @@ class ConsolidadoResolucionesManager:
         ----------
         cr_filename : string
             consolidado resoluciones file name
-        current_year : int
-            current year
 
         Raises
         ------
@@ -67,11 +65,8 @@ class ConsolidadoResolucionesManager:
         proyectos_df = regionales_proyectos_manager.read_proyectos_data()
         # Get Project name from NaN codes from proyectos_df Dataframe
         nan_code_project = proyectos_df.loc[proyectos_df['COD. PROYECTO'].isnull()].PROYECTOS.values.any()
-        # Get the upper year found in columns RUBRO LEY SIIF_year
-        upper_year = self.current_year
-        while 'CODIGO DECRETO LEY {}'.format(upper_year) not in cr_cierre_df.columns and self.current_year - 5 < upper_year:
-            upper_year -= 1
-        columnname_decreto_ley = 'CODIGO DECRETO LEY {}'.format(upper_year)
+        # Get the upper year found in columns RUBRO LEY SIIF_*year*
+        columnname_decreto_ley = Utils.get_columnname_by_upper_year('CODIGO DECRETO LEY {}', cr_cierre_df.columns)
         # Generate 'Proyecto' Column from 'CODIGO DECRETO LEY 2020' Column where mached, for nan values set nan_code_project value by default
         cr_cierre_df['PROYECTO'] = pd.merge(cr_cierre_df[columnname_decreto_ley], proyectos_df, how='left',
                                             left_on=[columnname_decreto_ley],
@@ -135,43 +130,41 @@ class ConsolidadoResolucionesManager:
         ValueError
             If some error exist, then return Error Message.
         """
-        try:
-            print("Build Consolidado Resoluciones LLAVES")
-            # Read standardized consolidacion_resoluciones_cierre
-            cr_cierre_df = pd.read_excel(
-                self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CR,
-                0, converters={'C. REGIONAL': str, 'SUB UNID': str, 'DEPE SIIF': str,
-                               'COD DEP SIIF': str, 'CUENTA CATALOGO': str, 'CODIGO ORDINAL': str,
-                               'RECURSO': str}, na_values=['NA'])
+        
+        print("Build Consolidado Resoluciones LLAVES")
+        # Read standardized consolidacion_resoluciones_cierre
+        cr_cierre_df = pd.read_excel(
+            self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CR,
+            0, converters={'C. REGIONAL': str, 'SUB UNID': str, 'DEPE SIIF': str,
+                            'COD DEP SIIF': str, 'CUENTA CATALOGO': str, 'CODIGO ORDINAL': str,
+                            'RECURSO': str}, na_values=['NA'])
 
-            # Define if exist the nan values ​​in columns required for build KEYS
-            invalid_llaves_df = cr_cierre_df.loc[
-                cr_cierre_df['C. REGIONAL'].isnull() | cr_cierre_df['DEPE SIIF'].isnull() | cr_cierre_df[
-                    'POSICION CATALOGO DEL GASTO'].isnull() | cr_cierre_df['RECURSO'].isnull() | cr_cierre_df[
-                    'CONCEPTO INTERNO SENA GPO'].isnull()][
-                ['Fila', 'C. REGIONAL', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO', 'CONCEPTO INTERNO SENA GPO']]
-            invalid_llaves_df.to_excel(
-                self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_LLAVES + FILENAME_TEMP_CR, index=False)
+        # Define if exist the nan values ​​in columns required for build KEYS
+        invalid_llaves_df = cr_cierre_df.loc[
+            cr_cierre_df['C. REGIONAL'].isnull() | cr_cierre_df['DEPE SIIF'].isnull() | cr_cierre_df[
+                'POSICION CATALOGO DEL GASTO'].isnull() | cr_cierre_df['RECURSO'].isnull() | cr_cierre_df[
+                'CONCEPTO INTERNO SENA GPO'].isnull()][
+            ['Fila', 'C. REGIONAL', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO', 'CONCEPTO INTERNO SENA GPO']]
+        invalid_llaves_df.to_excel(
+            self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_LLAVES + FILENAME_TEMP_CR, index=False)
 
-            # Drop invalid values for create LLAVES
-            cr_cierre_df = cr_cierre_df.dropna(
-                subset=['C. REGIONAL', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO',
-                        'CONCEPTO INTERNO SENA GPO'])
+        # Drop invalid values for create LLAVES
+        cr_cierre_df = cr_cierre_df.dropna(
+            subset=['C. REGIONAL', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO',
+                    'CONCEPTO INTERNO SENA GPO'])
 
-            # Generate 'LLAVE' Column concatenating 'COD REG', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO' y 'CONCEPTO INTERNO SENA GPO'
-            cr_cierre_df['LLAVE'] = cr_cierre_df['C. REGIONAL'] + cr_cierre_df[
-                'DEPE SIIF'] + cr_cierre_df['POSICION CATALOGO DEL GASTO'] + cr_cierre_df['RECURSO'] + \
-                                    cr_cierre_df['CONCEPTO INTERNO SENA GPO']
+        # Generate 'LLAVE' Column concatenating 'COD REG', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO' y 'CONCEPTO INTERNO SENA GPO'
+        cr_cierre_df['LLAVE'] = cr_cierre_df['C. REGIONAL'] + cr_cierre_df[
+            'DEPE SIIF'] + cr_cierre_df['POSICION CATALOGO DEL GASTO'] + cr_cierre_df['RECURSO'] + \
+                                cr_cierre_df['CONCEPTO INTERNO SENA GPO']
 
-            print(cr_cierre_df[
-                      ['LLAVE', 'C. REGIONAL', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO',
-                       'CONCEPTO INTERNO SENA GPO']])
+        print(cr_cierre_df[
+                    ['LLAVE', 'C. REGIONAL', 'DEPE SIIF', 'POSICION CATALOGO DEL GASTO', 'RECURSO',
+                    'CONCEPTO INTERNO SENA GPO']])
 
-            # Return build file
-            return cr_cierre_df
-        except ValueError:
-            print(ValueError)
-            return ValueError
+        # Return build file
+        return cr_cierre_df
+        
 
 
 if __name__ == "__main__":

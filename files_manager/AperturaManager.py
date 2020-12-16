@@ -10,6 +10,7 @@ from utils.Constants import FILENAME_TEMP_APERTURA, FOLDERNAME_TEMP, FILENAME_RE
     FILENAME_INVALID_REG_DEP, FILENAME_INVALID_PROYECTOS, FILENAME_INVALID_CONCEPTOS, FILENAME_INVALID_LLAVES, \
     FOLDERNAME_FAIL_FILES
 from files_manager.RegionalesProyectosCfManager import RegionalesProyectosCfManager
+from utils.Utils import Utils
 
 
 class AperturaManager:
@@ -68,11 +69,8 @@ class AperturaManager:
         proyectos_df = regionales_proyectos_manager.read_proyectos_data()
         # Get Project name from NaN codes from proyectos_df Dataframe
         nan_code_project = proyectos_df.loc[proyectos_df['COD. PROYECTO'].isnull()].PROYECTOS.values.any()
-        # Get the upper year found in columns RUBRO LEY SIIF_year
-        upper_column_year = self.current_year
-        while 'RUBRO LEY SIIF_{}'.format(upper_column_year) not in apertura_df.columns and self.current_year - 5 < upper_column_year:
-            upper_column_year -= 1
-        columnname_rublo_ley = 'RUBRO LEY SIIF_{}'.format(upper_column_year)
+        # Get the upper year found in columns RUBRO LEY SIIF_*year*
+        columnname_rublo_ley = Utils.get_columnname_by_upper_year('RUBRO LEY SIIF_{}', apertura_df.columns)
         # Generate 'Proyecto' Column from 'CODIGO DECRETO LEY 2020' Column where mached, for nan values set nan_code_project value by default
         apertura_df['PROYECTO'] = pd.merge(apertura_df[columnname_rublo_ley], proyectos_df, how='left', left_on=[columnname_rublo_ley],
                                            right_on=['COD. PROYECTO']).PROYECTOS.fillna(nan_code_project)
@@ -135,49 +133,42 @@ class AperturaManager:
         ValueError
             If some error exist, then return Error Message.
         """
-        try:
-            print("Build Apertura LLAVES")
-            # Read standardized apertura_year
-            apertura_df = pd.read_excel(self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_APERTURA, 0,
-                                        converters={'C. REGIONAL': str, 'COD DEP': str, 'COD SUB': str,
-                                                    'SUB UNID': str, 'DEPE SIIF': str, 'POSICION DEL GASTO': str},
-                                        na_values=['NA'])
+        print("Build Apertura LLAVES")
+        # Read standardized apertura_year
+        apertura_df = pd.read_excel(self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_APERTURA, 0,
+                                    converters={'C. REGIONAL': str, 'COD DEP': str, 'COD SUB': str,
+                                                'SUB UNID': str, 'DEPE SIIF': str, 'POSICION DEL GASTO': str},
+                                    na_values=['NA'])
 
-            # Get the upper REC year Column
-            upper_column_year = self.current_year
-            while "REC {}".format(upper_column_year) not in apertura_df.columns and self.current_year - 5 < upper_year:
-                upper_column_year -= 1
-            columnname_rec = "REC {}".format(upper_column_year)
+        # Get the upper REC year Column
+        columnname_rec = Utils.get_columnname_by_upper_year('REC {}', apertura_df.columns)
 
-            # Define if exist the nan values ​​in columns required for build KEYS
-            invalid_llaves_df = apertura_df.loc[
-                apertura_df['C. REGIONAL'].isnull() | apertura_df['DEPE SIIF'].isnull() | apertura_df[
-                    'POSICION DEL GASTO'].isnull() | apertura_df[columnname_rec].isnull() | apertura_df[
-                    'CONCEPTO INTERNO SENA GPO'].isnull()][
-                ['Fila', 'C. REGIONAL', 'DEPE SIIF', 'POSICION DEL GASTO', 'CONCEPTO INTERNO SENA GPO']]
-            invalid_llaves_df.to_excel(
-                self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_LLAVES + FILENAME_TEMP_APERTURA, index=False)
+        # Define if exist the nan values ​​in columns required for build KEYS
+        invalid_llaves_df = apertura_df.loc[
+            apertura_df['C. REGIONAL'].isnull() | apertura_df['DEPE SIIF'].isnull() | apertura_df[
+                'POSICION DEL GASTO'].isnull() | apertura_df[columnname_rec].isnull() | apertura_df[
+                'CONCEPTO INTERNO SENA GPO'].isnull()][
+            ['Fila', 'C. REGIONAL', 'DEPE SIIF', 'POSICION DEL GASTO', 'CONCEPTO INTERNO SENA GPO']]
+        invalid_llaves_df.to_excel(
+            self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_LLAVES + FILENAME_TEMP_APERTURA, index=False)
 
-            # Drop invalid values for create LLAVES
-            apertura_df = apertura_df.dropna(
-                subset=['C. REGIONAL', 'DEPE SIIF', 'POSICION DEL GASTO', columnname_rec, 'CONCEPTO INTERNO SENA GPO'])
+        # Drop invalid values for create LLAVES
+        apertura_df = apertura_df.dropna(
+            subset=['C. REGIONAL', 'DEPE SIIF', 'POSICION DEL GASTO', columnname_rec, 'CONCEPTO INTERNO SENA GPO'])
 
-            # Generate 'LLAVE' Column concatenating 'COD REG', 'DEPE SIIF', 'POSICION DEL GASTO', 'REC {year}' y 'CONCEPTO INTERNO SENA GPO'
-            apertura_df['LLAVE'] = apertura_df['C. REGIONAL'] + apertura_df['DEPE SIIF'] + apertura_df[
-                'POSICION DEL GASTO'] + \
-                                   apertura_df[columnname_rec].astype(int).astype(str) + apertura_df[
-                                       'CONCEPTO INTERNO SENA GPO']
+        # Generate 'LLAVE' Column concatenating 'COD REG', 'DEPE SIIF', 'POSICION DEL GASTO', 'REC {year}' y 'CONCEPTO INTERNO SENA GPO'
+        apertura_df['LLAVE'] = apertura_df['C. REGIONAL'] + apertura_df['DEPE SIIF'] + apertura_df[
+            'POSICION DEL GASTO'] + \
+                                apertura_df[columnname_rec].astype(int).astype(str) + apertura_df[
+                                    'CONCEPTO INTERNO SENA GPO']
 
-            print(apertura_df[
-                      ['LLAVE', 'C. REGIONAL', 'DEPE SIIF', 'POSICION DEL GASTO', columnname_rec,
-                       'CONCEPTO INTERNO SENA GPO']])
+        print(apertura_df[
+                    ['LLAVE', 'C. REGIONAL', 'DEPE SIIF', 'POSICION DEL GASTO', columnname_rec,
+                    'CONCEPTO INTERNO SENA GPO']])
 
-            # Return Apertura DataFrame and LLAVES
-            return apertura_df
-        except ValueError:
-            print(ValueError)
-            return ValueError
-
+        # Return Apertura DataFrame and LLAVES
+        return apertura_df
+        
 
 if __name__ == "__main__":
     root_source_folder = 'C:\\Users\\cgonrodr\\Documents\\PruebaPythonExcel\\'

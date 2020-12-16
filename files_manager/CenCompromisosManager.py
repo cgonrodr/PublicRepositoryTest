@@ -9,13 +9,13 @@ import pandas as pd
 from utils.Constants import FOLDERNAME_TEMP, FILENAME_TEMP_CC, FILENAME_INVALID_REG_DEP, \
     FILENAME_INVALID_PROYECTOS, FILENAME_INVALID_CONCEPTOS, FOLDERNAME_FAIL_FILES, FILENAME_INVALID_LLAVES
 from files_manager.RegionalesProyectosCfManager import RegionalesProyectosCfManager
+from utils.Utils import Utils
 
 
 class CenCompromisosManager:
 
-    def __init__(self, root_source_folder, current_year):
+    def __init__(self, root_source_folder):
         self.root_source_folder = root_source_folder
-        self.current_year = current_year
         pass
 
     def standardize_file(self, cen_compromisos_filename):
@@ -72,20 +72,14 @@ class CenCompromisosManager:
         # Get Project name from NaN codes from proyectos_df Dataframe
         nan_code_project = proyectos_df.loc[proyectos_df['COD. PROYECTO'].isnull()].PROYECTOS.values.any()
         # Get the upper year found in columns Nombre Rubro Presupuestal *year*
-        upper_year = self.current_year
-        while 'Código Decreto Ley {}'.format(upper_year) not in cen_compromisos_df.columns and self.current_year - 5 < upper_year:
-            upper_year -= 1
-        columnname_codigo_decreto_ley = 'Código Decreto Ley {}'.format(upper_year)
+        columnname_codigo_decreto_ley = Utils.get_columnname_by_upper_year('Código Decreto Ley {}', cen_compromisos_df.columns)
         # Generate 'Proyecto' Column from 'CODIGO DECRETO LEY 2020' Column where mached, for nan values set nan_code_project value by default
         cen_compromisos_df['PROYECTO'] = pd.merge(cen_compromisos_df[columnname_codigo_decreto_ley], proyectos_df,
                                                   how='left', left_on=[columnname_codigo_decreto_ley],
                                                   right_on=['COD. PROYECTO']).PROYECTOS.fillna(nan_code_project)
 
         # Get the upper year found in columns Nombre Rubro Presupuestal *year*
-        upper_year = self.current_year
-        while 'Nombre Rubro Presupuestal {}'.format(upper_year) not in cen_compromisos_df.columns and self.current_year - 5 < upper_year:
-            upper_year -= 1
-        columnname_nombre_rublo = 'Nombre Rubro Presupuestal {}'.format(upper_year)
+        columnname_nombre_rublo = Utils.get_columnname_by_upper_year('Nombre Rubro Presupuestal {}', cen_compromisos_df.columns)
         # Read Concepto interno GPO list
         concepto_interno_df = regionales_proyectos_manager.read_concepto_interno_gpo_data()
         concepto_interno_df['CONCEPTOS INTERNOS SENA APERTURA'] = concepto_interno_df[
@@ -147,45 +141,41 @@ class CenCompromisosManager:
         ValueError
             If some error exist, then return Error Message.
         """
-        try:
-            print("Build CEN de Compromisos LLAVES")
-            # Read standardized cen_compromisos
-            cen_compromisos_df = pd.read_excel(
-                self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CC, 0,
-                converters={'C. REGIONAL': str, 'Código Dependencia Gasto': str,
-                            'Posicion del Gasto': str, 'REC': str}, na_values=['NA'])
+        print("Build CEN de Compromisos LLAVES")
+        # Read standardized cen_compromisos
+        cen_compromisos_df = pd.read_excel(
+            self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CC, 0,
+            converters={'C. REGIONAL': str, 'Código Dependencia Gasto': str,
+                        'Posicion del Gasto': str, 'REC': str}, na_values=['NA'])
 
-            # Define if exist the nan values ​​in columns required for build KEYS
-            invalid_llaves_df = cen_compromisos_df.loc[
-                cen_compromisos_df['C. REGIONAL'].isnull() | cen_compromisos_df['Código Dependencia Gasto'].isnull() |
-                cen_compromisos_df['Posicion del Gasto'].isnull() | cen_compromisos_df['REC'].isnull() | cen_compromisos_df[
-                    'CONCEPTO INTERNO SENA GPO'].isnull()][
-                ['Fila', 'C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC', 'CONCEPTO INTERNO SENA GPO']]
-            invalid_llaves_df.to_excel(
-                self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_LLAVES + FILENAME_TEMP_CC, index=False)
+        # Define if exist the nan values ​​in columns required for build KEYS
+        invalid_llaves_df = cen_compromisos_df.loc[
+            cen_compromisos_df['C. REGIONAL'].isnull() | cen_compromisos_df['Código Dependencia Gasto'].isnull() |
+            cen_compromisos_df['Posicion del Gasto'].isnull() | cen_compromisos_df['REC'].isnull() | cen_compromisos_df[
+                'CONCEPTO INTERNO SENA GPO'].isnull()][
+            ['Fila', 'C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC', 'CONCEPTO INTERNO SENA GPO']]
+        invalid_llaves_df.to_excel(
+            self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_LLAVES + FILENAME_TEMP_CC, index=False)
 
-            # Drop invalid values for create LLAVES
-            cen_compromisos_df = cen_compromisos_df.dropna(
-                subset=['C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC',
-                        'CONCEPTO INTERNO SENA GPO'])
+        # Drop invalid values for create LLAVES
+        cen_compromisos_df = cen_compromisos_df.dropna(
+            subset=['C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC',
+                    'CONCEPTO INTERNO SENA GPO'])
 
-            # Generate 'LLAVE' Column concatenating 'C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC' y 'CONCEPTO INTERNO SENA GPO'
-            cen_compromisos_df['LLAVE'] = cen_compromisos_df['C. REGIONAL'] + cen_compromisos_df[
-                'Código Dependencia Gasto'] + \
-                                          cen_compromisos_df['Posicion del Gasto'] + cen_compromisos_df['REC'] + \
-                                          cen_compromisos_df[
-                                              'CONCEPTO INTERNO SENA GPO']
+        # Generate 'LLAVE' Column concatenating 'C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC' y 'CONCEPTO INTERNO SENA GPO'
+        cen_compromisos_df['LLAVE'] = cen_compromisos_df['C. REGIONAL'] + cen_compromisos_df[
+            'Código Dependencia Gasto'] + \
+                                        cen_compromisos_df['Posicion del Gasto'] + cen_compromisos_df['REC'] + \
+                                        cen_compromisos_df[
+                                            'CONCEPTO INTERNO SENA GPO']
 
-            print(cen_compromisos_df[
-                      ['LLAVE', 'C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC',
-                       'CONCEPTO INTERNO SENA GPO']])
+        print(cen_compromisos_df[
+                    ['LLAVE', 'C. REGIONAL', 'Código Dependencia Gasto', 'Posicion del Gasto', 'REC',
+                    'CONCEPTO INTERNO SENA GPO']])
 
-            # Return build file
-            return cen_compromisos_df
-        except ValueError:
-            print("Result: ", ValueError)
-            return ValueError
-
+        # Return build file
+        return cen_compromisos_df
+        
 
 if __name__ == "__main__":
     root_source_folder = 'C:\\Users\\cgonrodr\\Documents\\PruebaPythonExcel\\'

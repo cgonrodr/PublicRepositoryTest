@@ -7,7 +7,7 @@ to use.
 from files_manager.AperturaManager import AperturaManager
 from files_manager.CenCompromisosManager import CenCompromisosManager
 from files_manager.ConsolidadoResolucionesManager import ConsolidadoResolucionesManager
-from files_manager.InformeManager import InformeInternoManager
+from files_manager.InformeInternoManager import InformeInternoManager
 import datetime
 
 
@@ -29,11 +29,11 @@ class InformesPresupuestalesFacade:
             standardize_results = []
             
             # Standardize Consolidado de Resoluciones File
-            cr_manager = ConsolidadoResolucionesManager(root_source_folder, self.current_year)
+            cr_manager = ConsolidadoResolucionesManager(root_source_folder)
             standardize_results.append(cr_manager.standardize_file(cr_filename))
 
             # Standardize Cen de Compromisos File
-            cc_manager = CenCompromisosManager(root_source_folder, self.current_year)
+            cc_manager = CenCompromisosManager(root_source_folder)
             standardize_results.append(cc_manager.standardize_file(cc_filename))
 
             # Standardize Apertura File
@@ -59,11 +59,11 @@ class InformesPresupuestalesFacade:
 
         try:
             # Standardize Consolidado de Resoluciones File
-            cr_manager = ConsolidadoResolucionesManager(root_source_folder, self.current_year)
+            cr_manager = ConsolidadoResolucionesManager(self.root_source_folder)
             cr_llaves_df = cr_manager.build_llaves()
 
             # Standardize Cen de Compromisos File
-            cc_manager = CenCompromisosManager(root_source_folder, self.current_year)
+            cc_manager = CenCompromisosManager(self.root_source_folder)
             cc_llaves_df = cc_manager.build_llaves()
 
             # Standardize Apertura File
@@ -71,7 +71,7 @@ class InformesPresupuestalesFacade:
             apertura_llaves_df = apertura_manager.build_llaves()
 
             # Build Informe Interno
-            informe_interno_manager = InformeInternoManager()
+            informe_interno_manager = InformeInternoManager(self.root_source_folder)
             informe_interno_manager.build_informe(cr_llaves_df, cc_llaves_df, apertura_llaves_df)
 
             
