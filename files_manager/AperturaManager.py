@@ -6,7 +6,7 @@
  """
 
 import pandas as pd
-from utils.Constants import FILENAME_TEMP_APERTURA, FOLDERNAME_TEMP, FILENAME_REGIONES_PROYECTOS_CONCEPTOS, \
+from utils.Constants import FILENAME_TEMP_APERTURA, FOLDERNAME_STANDARDIZE_FILES, FILENAME_REGIONES_PROYECTOS_CONCEPTOS, \
     FILENAME_INVALID_REG_DEP, FILENAME_INVALID_PROYECTOS, FILENAME_INVALID_CONCEPTOS, FILENAME_INVALID_LLAVES, \
     FOLDERNAME_FAIL_FILES
 from files_manager.RegionalesProyectosCfManager import RegionalesProyectosCfManager
@@ -72,8 +72,10 @@ class AperturaManager:
         # Get the upper year found in columns RUBRO LEY SIIF_*year*
         columnname_rublo_ley = Utils.get_columnname_by_upper_year('RUBRO LEY SIIF_{}', apertura_df.columns)
         # Generate 'Proyecto' Column from 'CODIGO DECRETO LEY 2020' Column where mached, for nan values set nan_code_project value by default
-        apertura_df['PROYECTO'] = pd.merge(apertura_df[columnname_rublo_ley], proyectos_df, how='left', left_on=[columnname_rublo_ley],
-                                           right_on=['COD. PROYECTO']).PROYECTOS.fillna(nan_code_project)
+        apertura_df_proyectos = pd.merge(apertura_df[columnname_rublo_ley], proyectos_df, how='left', left_on=[columnname_rublo_ley],
+                                           right_on=['COD. PROYECTO'])
+        apertura_df_proyectos.loc[apertura_df_proyectos[columnname_rublo_ley].str.contains('A-', na=False), 'PROYECTOS'] = nan_code_project
+        apertura_df['PROYECTO'] = apertura_df_proyectos['PROYECTOS']
 
         # Read Concepto interno GPO list
         concepto_interno_df = regionales_proyectos_manager.read_concepto_interno_gpo_data()
@@ -114,7 +116,7 @@ class AperturaManager:
                 self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_CONCEPTOS + FILENAME_TEMP_APERTURA, index=False)
 
         # Save standardized Apertura File
-        apertura_df.to_excel(self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_APERTURA, index=False)
+        apertura_df.to_excel(self.root_source_folder + FOLDERNAME_STANDARDIZE_FILES + FILENAME_TEMP_APERTURA, index=False)
 
         # return True indicating good execution
         print("Result: Successful")
@@ -135,7 +137,7 @@ class AperturaManager:
         """
         print("Build Apertura LLAVES")
         # Read standardized apertura_year
-        apertura_df = pd.read_excel(self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_APERTURA, 0,
+        apertura_df = pd.read_excel(self.root_source_folder + FOLDERNAME_STANDARDIZE_FILES + FILENAME_TEMP_APERTURA, 0,
                                     converters={'C. REGIONAL': str, 'COD DEP': str, 'COD SUB': str,
                                                 'SUB UNID': str, 'DEPE SIIF': str, 'POSICION DEL GASTO': str},
                                     na_values=['NA'])

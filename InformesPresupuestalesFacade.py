@@ -25,30 +25,24 @@ class InformesPresupuestalesFacade:
         print('Start Standardize Files')
 
         try:
-            # Init standardize results list
-            standardize_results = []
             
             # Standardize Consolidado de Resoluciones File
             cr_manager = ConsolidadoResolucionesManager(root_source_folder)
-            standardize_results.append(cr_manager.standardize_file(cr_filename))
+            cr_manager.standardize_file(cr_filename)
 
             # Standardize Cen de Compromisos File
             cc_manager = CenCompromisosManager(root_source_folder)
-            standardize_results.append(cc_manager.standardize_file(cc_filename))
+            cc_manager.standardize_file(cc_filename)
 
             # Standardize Apertura File
             apertura_manager = AperturaManager(self.root_source_folder, self.current_year)
-            standardize_results.append(apertura_manager.standardize_file(apertura_filename))
-
-            print(standardize_results)
+            apertura_manager.standardize_file(apertura_filename)
 
             # Check if all results are 'Successful', return Successful if yes
-            if len(set(standardize_results)) == 1 and str(set(standardize_results)) == "{'Successful'}":
-                return 'Successful'
-            
-            # Return the complete errors set
-            return str(set(standardize_results))
-        
+            #if len(set(standardize_results)) == 1 and str(set(standardize_results)) == "{'Successful'}":
+            print('Successful')
+            return 'Successful'
+           
         except Exception as e:
             print(e)
             return e
@@ -74,7 +68,6 @@ class InformesPresupuestalesFacade:
             informe_interno_manager = InformeInternoManager(self.root_source_folder)
             informe_interno_manager.build_informe(cr_llaves_df, cc_llaves_df, apertura_llaves_df)
 
-            
         except ValueError:
             print(ValueError)
             return ValueError
@@ -98,9 +91,8 @@ if __name__ == "__main__":
     sheet_name_cr = 'Administrativa'
     cc_filename = "CEN COMPROMISOS CONS NAL A 30 SEPT 2020_CIERRE_01102020 - Homologado.xlsb"
     sheet_name_cc = 'CEN COMPR CONSNAL A 30SEPT20_C '
-    #standardize_results = informes_presupuestales_facade.standardize_root_files(apertura_filename, cr_filename,
-    #                                                                            cc_filename)
+    standardize_results = informes_presupuestales_facade.standardize_root_files(apertura_filename, cr_filename,
+                                                                                cc_filename)
     #print(standardize_results)
 
-    informes_presupuestales_facade.build_informe_report()                                                                            
-    
+    #informes_presupuestales_facade.build_informe_report()                                                                            

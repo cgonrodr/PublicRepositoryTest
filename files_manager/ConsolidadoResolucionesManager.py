@@ -6,7 +6,7 @@
  """
 
 import pandas as pd
-from utils.Constants import FILENAME_REGIONES_PROYECTOS_CONCEPTOS, FOLDERNAME_TEMP, \
+from utils.Constants import FILENAME_REGIONES_PROYECTOS_CONCEPTOS, FOLDERNAME_STANDARDIZE_FILES, \
     FILENAME_TEMP_CR, FILENAME_INVALID_REG_DEP, FILENAME_INVALID_PROYECTOS, \
     FILENAME_INVALID_CONCEPTOS, FILENAME_INVALID_LLAVES, FOLDERNAME_FAIL_FILES
 from files_manager.RegionalesProyectosCfManager import RegionalesProyectosCfManager
@@ -68,9 +68,10 @@ class ConsolidadoResolucionesManager:
         # Get the upper year found in columns RUBRO LEY SIIF_*year*
         columnname_decreto_ley = Utils.get_columnname_by_upper_year('CODIGO DECRETO LEY {}', cr_cierre_df.columns)
         # Generate 'Proyecto' Column from 'CODIGO DECRETO LEY 2020' Column where mached, for nan values set nan_code_project value by default
-        cr_cierre_df['PROYECTO'] = pd.merge(cr_cierre_df[columnname_decreto_ley], proyectos_df, how='left',
-                                            left_on=[columnname_decreto_ley],
-                                            right_on=['COD. PROYECTO']).PROYECTOS.fillna(nan_code_project)
+        cr_cierre_proyectos_df = pd.merge(cr_cierre_df[columnname_decreto_ley], proyectos_df, how='left',
+                                            left_on=[columnname_decreto_ley], right_on=['COD. PROYECTO'])
+        cr_cierre_proyectos_df.loc[cr_cierre_proyectos_df[columnname_decreto_ley].str.contains('A-', na=False), 'PROYECTOS'] = nan_code_project
+        cr_cierre_df['PROYECTO'] = cr_cierre_proyectos_df['PROYECTOS']
 
         # Read Concepto interno GPO list
         concepto_interno_df = regionales_proyectos_manager.read_concepto_interno_gpo_data()
@@ -111,7 +112,7 @@ class ConsolidadoResolucionesManager:
                 self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_CONCEPTOS + FILENAME_TEMP_CR, index=False)
 
         # Save standardized Consolidacion de Resoluciones File
-        cr_cierre_df.to_excel(self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CR, index=False)
+        cr_cierre_df.to_excel(self.root_source_folder + FOLDERNAME_STANDARDIZE_FILES + FILENAME_TEMP_CR, index=False)
 
         # return True indicating good execution
         print("Result: Successful")
@@ -134,7 +135,7 @@ class ConsolidadoResolucionesManager:
         print("Build Consolidado Resoluciones LLAVES")
         # Read standardized consolidacion_resoluciones_cierre
         cr_cierre_df = pd.read_excel(
-            self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CR,
+            self.root_source_folder + FOLDERNAME_STANDARDIZE_FILES + FILENAME_TEMP_CR,
             0, converters={'C. REGIONAL': str, 'SUB UNID': str, 'DEPE SIIF': str,
                             'COD DEP SIIF': str, 'CUENTA CATALOGO': str, 'CODIGO ORDINAL': str,
                             'RECURSO': str}, na_values=['NA'])

@@ -6,7 +6,7 @@
  """
 
 import pandas as pd
-from utils.Constants import FOLDERNAME_TEMP, FILENAME_TEMP_CC, FILENAME_INVALID_REG_DEP, \
+from utils.Constants import FOLDERNAME_STANDARDIZE_FILES, FILENAME_TEMP_CC, FILENAME_INVALID_REG_DEP, \
     FILENAME_INVALID_PROYECTOS, FILENAME_INVALID_CONCEPTOS, FOLDERNAME_FAIL_FILES, FILENAME_INVALID_LLAVES
 from files_manager.RegionalesProyectosCfManager import RegionalesProyectosCfManager
 from utils.Utils import Utils
@@ -74,9 +74,11 @@ class CenCompromisosManager:
         # Get the upper year found in columns Nombre Rubro Presupuestal *year*
         columnname_codigo_decreto_ley = Utils.get_columnname_by_upper_year('Código Decreto Ley {}', cen_compromisos_df.columns)
         # Generate 'Proyecto' Column from 'CODIGO DECRETO LEY 2020' Column where mached, for nan values set nan_code_project value by default
-        cen_compromisos_df['PROYECTO'] = pd.merge(cen_compromisos_df[columnname_codigo_decreto_ley], proyectos_df,
+        cen_compromisos_proyectos_df = pd.merge(cen_compromisos_df[columnname_codigo_decreto_ley], proyectos_df,
                                                   how='left', left_on=[columnname_codigo_decreto_ley],
-                                                  right_on=['COD. PROYECTO']).PROYECTOS.fillna(nan_code_project)
+                                                  right_on=['COD. PROYECTO'])
+        cen_compromisos_proyectos_df.loc[cen_compromisos_proyectos_df[columnname_codigo_decreto_ley].str.contains('A-', na=False), 'PROYECTOS'] = nan_code_project
+        cen_compromisos_df['PROYECTO'] = cen_compromisos_proyectos_df['PROYECTOS']
 
         # Get the upper year found in columns Nombre Rubro Presupuestal *year*
         columnname_nombre_rublo = Utils.get_columnname_by_upper_year('Nombre Rubro Presupuestal {}', cen_compromisos_df.columns)
@@ -122,7 +124,7 @@ class CenCompromisosManager:
                 self.root_source_folder + FOLDERNAME_FAIL_FILES + FILENAME_INVALID_CONCEPTOS + FILENAME_TEMP_CC, index=False)
 
         # Save standardized Cen de Compromisos File
-        cen_compromisos_df.to_excel(self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CC, index=False)
+        cen_compromisos_df.to_excel(self.root_source_folder + FOLDERNAME_STANDARDIZE_FILES + FILENAME_TEMP_CC, index=False)
 
         # return True indicating good execution
         print("Result: Successful")
@@ -144,7 +146,7 @@ class CenCompromisosManager:
         print("Build CEN de Compromisos LLAVES")
         # Read standardized cen_compromisos
         cen_compromisos_df = pd.read_excel(
-            self.root_source_folder + FOLDERNAME_TEMP + FILENAME_TEMP_CC, 0,
+            self.root_source_folder + FOLDERNAME_STANDARDIZE_FILES + FILENAME_TEMP_CC, 0,
             converters={'C. REGIONAL': str, 'Código Dependencia Gasto': str,
                         'Posicion del Gasto': str, 'REC': str}, na_values=['NA'])
 

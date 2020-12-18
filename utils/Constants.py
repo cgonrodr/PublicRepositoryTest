@@ -18,13 +18,16 @@ FILENAME_TEMP_CC = "cen_compromisos.xlsx"                                       
 FILENAME_TEMP_CR = "consolidacion_resoluciones.xlsx"                                                                    # Consolidado Resoluciones Temp file name
 FILENAME_TEMP_APERTURA = "apertura_year.xlsx"                                                                           # Apertura Temp file name
 
+# Final Files Names
+FILENAME_FINAL_INFORME_INTERNO = 'Informe Concepto Interno Sena.xlsx'                                                   # Informe Concepto Interno Sena Final
+
 # Tempplates Files Names
 TEMPLATE_INFORME_SENA = "Template Informe Concepto Interno Sena.xlsx"                                                   # Informe Concepto Interno Sena Template name
 
 # Temp Folder Name
-FOLDERNAME_TEMP = "TempFiles\\"                                                                                         # Temp Folder Name
+FOLDERNAME_STANDARDIZE_FILES = "StandardizeFiles\\"                                                                     # Standardize Files Folder Name
 FOLDERNAME_TEMPLATES = "TemplatesFiles\\"                                                                               # Templates Folder Name
-RESULTFILES_FOLDERNAME = "ResultFiles\\"                                                                                # Result files Folder Name
+FOLDERNAME_FINAL_FILES = "FinalFiles\\"                                                                                  # Final files Folder Name
 FOLDERNAME_FAIL_FILES = "FailFiles\\"                                                                                   # Fail files Folder Name
 
 # Invalid standardize files names
